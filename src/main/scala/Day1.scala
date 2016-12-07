@@ -16,11 +16,12 @@ object Day1 extends App {
     def distanceTo(other: PointWithDir) = Math.abs(x - other.x) + Math.abs(y - other.y)
   }
 
-  def getNewDir(turn: String, prev: PointWithDir): PointWithDir = {
+  def getNewLoc(prev: PointWithDir,turn: String, steps: Int): PointWithDir = {
+    def getTrigLoc(dir: Double, func: Double => Double) = Math.round(func(dir*Math.PI))
     val nDir = prev.dir + {
       if (turn == "L") .5 else -.5
     }
-    PointWithDir(Math.round(Math.cos(nDir * Math.PI)), Math.round(Math.sin(nDir * Math.PI)), nDir)
+    PointWithDir(prev.x + steps*getTrigLoc(nDir,Math.cos), prev.y + steps*getTrigLoc(nDir,Math.sin), nDir)
   }
 
   val starting = PointWithDir(0, 0, .5)
@@ -28,9 +29,7 @@ object Day1 extends App {
   def part1(): Unit = {
     val endingPoint = in.foldLeft(starting) { (c, s) =>
       val regex(dir, stpStr) = s
-      val steps = stpStr.toInt
-      val nDir = getNewDir(dir, c)
-      c.copy(x = c.x + (nDir.x * steps), y = c.y + (nDir.y * steps), nDir.dir)
+      getNewLoc(c,dir,stpStr.toInt)
     }
 
     println(s"Part 1: ${endingPoint.distanceTo(starting)}")
@@ -39,9 +38,7 @@ object Day1 extends App {
   def part2(): Unit = {
     val pt2List = starting :: in.scanLeft(starting) { (c, s) =>
       val regex(dir, stpStr) = s
-      val steps = stpStr.toInt
-      val nDir = getNewDir(dir, c)
-      c.copy(x = c.x + (nDir.x * steps), y = c.y + (nDir.y * steps), nDir.dir)
+      getNewLoc(c,dir,stpStr.toInt)
     }.sliding(2).flatMap { case Array(p1, p2) => (for (x <- (p1.x to p2.x by (if (p2.x - p1.x < 0) -1 else 1)); y <- (p1.y to p2.y by (if (p2.y - p1.y < 0) -1 else 1))) yield {
       PointWithDir(x, y, p1.dir)
     }).tail
