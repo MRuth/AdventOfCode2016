@@ -1,7 +1,6 @@
-import java.util
-
 import scala.annotation.tailrec
-import scala.collection.mutable
+import scala.collection._
+import scala.collection.immutable.Queue
 
 /**
   * Created by Montana Ruth on 12/17/2016.
@@ -16,28 +15,29 @@ object Day17 extends App {
   case class Move(x: Int, y: Int, path: String)
   def isValidMove(x: Int, y:Int) = (maze.isDefinedAt(y) && maze(y).isDefinedAt(x) && maze(y)(x) != '#')
 
-  def solve(): (String,String) = {
-    val queue = mutable.Queue[Move](Move(1,1,""))
-    var shortestPath: Option[String] = None
-    var longestPath: Int = -1
-    while (queue.nonEmpty) {
-      val head = queue.dequeue()
-      if(isValidMove(head.x+1,head.y+1) && maze(head.y+1)(head.x+1) == 'V') {
-        if(shortestPath == None) shortestPath = Some(head.path)
-        longestPath = longestPath.max(head.path.length)
+  def recurSolve(): (Option[String],Int) = {
+    @tailrec
+    def recur(moves: Queue[Move], shortestPath: Option[String], longestPath: Int): (Option[String], Int) =
+      moves match {
+        case Queue() => return (shortestPath, longestPath)
+        case head +: tail if (isValidMove(head.x + 1, head.y + 1) && maze(head.y + 1)(head.x + 1) == 'V') =>
+          recur(tail, if (shortestPath == None) Some(head.path) else shortestPath,
+            longestPath.max(head.path.length))
+        case head +: tail => recur(getNewTail(head, tail), shortestPath, longestPath)
       }
-      else {
-        val pass = passcode(head.path)
-        if (isValidMove(head.x, head.y - 2) && openChrs(pass(0))) queue.enqueue(Move(head.x,head.y-2,head.path+"U"))
-        if (isValidMove(head.x, head.y + 2) && openChrs(pass(1))) queue.enqueue(Move(head.x,head.y+2,head.path+"D"))
-        if (isValidMove(head.x - 2, head.y) && openChrs(pass(2))) queue.enqueue(Move(head.x-2,head.y,head.path+"L"))
-        if (isValidMove(head.x + 2, head.y) && openChrs(pass(3))) queue.enqueue(Move(head.x+2,head.y,head.path+"R"))
-      }
+    def getNewTail(head: Move, tail: Queue[Move]) = {
+      val pass = passcode(head.path)
+      tail.enqueue(List(
+        if (isValidMove(head.x, head.y - 2) && openChrs(pass(0))) Some(Move(head.x, head.y - 2, head.path + "U")) else None,
+        if (isValidMove(head.x, head.y + 2) && openChrs(pass(1))) Some(Move(head.x, head.y + 2, head.path + "D")) else None,
+        if (isValidMove(head.x - 2, head.y) && openChrs(pass(2))) Some(Move(head.x - 2, head.y, head.path + "L")) else None,
+        if (isValidMove(head.x + 2, head.y) && openChrs(pass(3))) Some(Move(head.x + 2, head.y, head.path + "R")) else None
+      ).flatten)
     }
-    return (shortestPath.get,longestPath.toString)
+    recur(Queue[Move](Move(1,1,"")),None,-1)
   }
 
-  val (part1,part2) = solve()
-  println(s"Part 1: $part1")
+  val (part1,part2) = recurSolve()
+  println(s"Part 1: ${part1.get}")
   println(s"Part 2: $part2")
 }
